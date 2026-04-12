@@ -1,7 +1,7 @@
 const sidebar = document.getElementById("sidebar");
 
 const menu = [
-  { name: "Dashboard", path: "dashboard.html" },
+  { name: "Dashboard", path: "index.html" },
   { name: "Импорт данных", path: "import.html" },
   { name: "Планирование", path: "planning.html" },
   { name: "План по дням", path: "calendar.html" },
