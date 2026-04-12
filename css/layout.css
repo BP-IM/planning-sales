@@ -11,23 +11,41 @@ body {
 }
 
 .layout {
-  display: flex;
   min-height: 100vh;
 }
 
 #sidebar {
-  width: 270px;
-  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 88px;
+  height: 100vh;
   background: #0f172a;
   color: #fff;
+  padding: 24px 10px;
+  overflow-y: auto;
+  z-index: 1000;
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+
+body.sidebar-open #sidebar {
+  width: 270px;
   padding: 24px 18px;
-  flex-shrink: 0;
+}
+
+.sidebar-top {
+  margin-bottom: 28px;
 }
 
 #sidebar .logo {
   font-size: 20px;
   font-weight: 700;
-  margin-bottom: 28px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.logo-text {
+  display: inline-block;
 }
 
 .sidebar-nav {
@@ -37,14 +55,24 @@ body {
 }
 
 .sidebar-nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-decoration: none;
   color: #cbd5e1;
-  padding: 14px 16px;
+  min-height: 48px;
+  padding: 14px 0;
   border-radius: 14px;
   transition: 0.2s ease;
   font-size: 15px;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+body.sidebar-open .sidebar-nav a {
+  justify-content: flex-start;
+  padding: 14px 16px;
 }
 
 .sidebar-nav a:hover {
@@ -58,10 +86,28 @@ body {
   font-weight: 700;
 }
 
+.nav-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+}
+
+body.sidebar-open .nav-text {
+  opacity: 1;
+  width: auto;
+  margin-left: 0;
+}
+
 .main-content {
-  flex: 1;
+  margin-left: 88px;
   padding: 24px;
   min-width: 0;
+  transition: margin-left 0.3s ease;
+}
+
+body.sidebar-open .main-content {
+  margin-left: 270px;
 }
 
 .header {
@@ -79,16 +125,33 @@ body {
 }
 
 @media (max-width: 900px) {
-  .layout {
-    flex-direction: column;
-  }
-
   #sidebar {
     width: 100%;
-    min-height: auto;
+    height: auto;
+    position: relative;
+    padding: 16px;
   }
 
-  .main-content {
+  body.sidebar-open #sidebar {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .sidebar-nav a,
+  body.sidebar-open .sidebar-nav a {
+    justify-content: flex-start;
+    padding: 14px 16px;
+  }
+
+  .nav-text,
+  body.sidebar-open .nav-text {
+    opacity: 1;
+    width: auto;
+  }
+
+  .main-content,
+  body.sidebar-open .main-content {
+    margin-left: 0;
     padding: 16px;
   }
 }

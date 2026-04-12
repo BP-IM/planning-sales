@@ -9,16 +9,24 @@ const menu = [
 ];
 
 function renderSidebar() {
-  const currentPath = window.location.pathname.split("/").pop();
+  const currentPath = window.location.pathname.split("/").pop() || "index.html";
 
   sidebar.innerHTML = `
-    <div class="logo">📊 Planning</div>
+    <div class="sidebar-top">
+      <div class="logo">
+        <span class="logo-text">📊 Planning</span>
+      </div>
+    </div>
 
     <nav class="sidebar-nav">
       ${menu
         .map((item) => {
           const isActive = item.path === currentPath ? "active" : "";
-          return `<a href="${item.path}" class="${isActive}">${item.name}</a>`;
+          return `
+            <a href="${item.path}" class="${isActive}" title="${item.name}">
+              <span class="nav-text">${item.name}</span>
+            </a>
+          `;
         })
         .join("")}
     </nav>
@@ -26,3 +34,11 @@ function renderSidebar() {
 }
 
 renderSidebar();
+
+sidebar.addEventListener("mouseenter", () => {
+  document.body.classList.add("sidebar-open");
+});
+
+sidebar.addEventListener("mouseleave", () => {
+  document.body.classList.remove("sidebar-open");
+});
