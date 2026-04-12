@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Планирование</title>
+
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+</head>
+<body>
+
+<div class="layout">
+  <aside id="sidebar"></aside>
+
+  <div class="main-content">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-content">
+        <h1>Планирование</h1>
+        <p id="currentMonthLabel">Загрузка...</p>
+      </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <main class="dashboard">
+
+      <!-- SUMMARY -->
+      <section class="summary-card">
+        <div class="summary-head">
+          <h2>План на текущий месяц</h2>
+          <span class="badge" id="monthBadge">—</span>
+        </div>
+
+        <div class="summary-grid">
+
+          <div class="summary-item">
+            <span class="label">Месячный план</span>
+            <strong id="monthlyPlan">—</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="label">Средний чек</span>
+            <strong id="avgCheck">—</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="label">План по гостям</span>
+            <strong id="monthlyGuests">—</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="label">Средний план в день</span>
+            <strong id="dailyAverage">—</strong>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TABLE -->
+      <section class="table-card">
+
+        <div class="table-head">
+          <h2>План по дням</h2>
+        </div>
+
+        <div class="table-wrap">
+
+          <table>
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>День</th>
+                <th>Сумма</th>
+                <th>Гости</th>
+              </tr>
+            </thead>
+
+            <tbody id="planTableBody">
+              <tr>
+                <td colspan="4" style="text-align:center; padding:20px; color:#64748b;">
+                  Загрузка данных...
+                </td>
+              </tr>
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+</div>
+
+<!-- ВАЖНО: Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="js/layout.js"></script>
+<script src="js/dashboard.js"></script>
+
+</body>
+</html>

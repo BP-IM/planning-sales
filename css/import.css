@@ -1,0 +1,52 @@
+.import-page {
+  display: grid;
+  gap: 24px;
+}
+
+.card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+}
+
+.card h2 {
+  margin-bottom: 16px;
+}
+
+input[type="file"] {
+  margin-bottom: 12px;
+}
+
+button {
+  margin-right: 10px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #2563eb;
+  color: #fff;
+}
+
+button:hover {
+  background: #1e40af;
+}
+
+#status {
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}

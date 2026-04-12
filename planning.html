@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Планирование</title>
+
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/planning.css">
+</head>
+<body>
+  <div class="layout">
+    <aside id="sidebar"></aside>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-content">
+          <h1>Планирование</h1>
+          <p>Генерация плана на месяц по данным fact_data</p>
+        </div>
+      </header>
+
+      <main class="planning-page">
+        <section class="card">
+          <h2>Параметры</h2>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="targetYear">Планируемый год</label>
+              <input type="number" id="targetYear" min="2024" max="2035" value="2026">
+            </div>
+
+            <div class="form-group">
+              <label for="targetMonth">Планируемый месяц</label>
+              <input type="number" id="targetMonth" min="1" max="12" value="4">
+            </div>
+
+            <div class="form-group">
+              <label for="monthlyTarget">План на месяц (₸)</label>
+              <input type="number" id="monthlyTarget" min="0" step="1" value="90000000">
+            </div>
+
+            <div class="form-group">
+              <label for="sourceUpload">Источник факта</label>
+              <select id="sourceUpload"></select>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="loadSourcesBtn" type="button">Обновить источники</button>
+            <button id="generateBtn" type="button">Сгенерировать план</button>
+            <button id="saveBtn" type="button">Сохранить в базу</button>
+          </div>
+
+          <div id="status" class="status"></div>
+        </section>
+
+        <section class="card">
+          <h2>Итог</h2>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span>Плановый месяц</span>
+              <strong id="summaryMonth">—</strong>
+            </div>
+            <div class="summary-item">
+              <span>Целевой план</span>
+              <strong id="summaryTarget">—</strong>
+            </div>
+            <div class="summary-item">
+              <span>Дней рассчитано</span>
+              <strong id="summaryDays">—</strong>
+            </div>
+            <div class="summary-item">
+              <span>Часов рассчитано</span>
+              <strong id="summaryHours">—</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>План по дням</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>День недели</th>
+                  <th>Базовый план</th>
+                  <th>Финальный план</th>
+                </tr>
+              </thead>
+              <tbody id="dailyPlanBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/planning.js"></script>
+</body>
+</html>
