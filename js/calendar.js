@@ -18,30 +18,55 @@
   const statusDiv = document.getElementById("status");
 
   function format(num) {
-    return new Intl.NumberFormat("ru-RU").format(Math.round(num));
+    return new Intl.NumberFormat("ru-RU").format(Math.round(Number(num) || 0));
+  }
+
+  function setTodayToInputs() {
+    const today = new Date();
+    yearInput.value = today.getFullYear();
+    monthInput.value = today.getMonth() + 1;
+    dayInput.value = today.getDate();
+  }
+
+  function resetDayView(message = "Данных нет") {
+    tableBody.innerHTML = "";
+    totalToo.textContent = "—";
+    totalGc.textContent = "—";
+    avgCheck.textContent = "—";
+    statusDiv.textContent = message;
   }
 
   async function loadDayPlan() {
-    const y = yearInput.value;
-    const m = String(monthInput.value).padStart(2, "0");
-    const d = String(dayInput.value).padStart(2, "0");
+    const y = Number(yearInput.value);
+    const m = Number(monthInput.value);
+    const d = Number(dayInput.value);
 
-    const date = `${y}-${m}-${d}`;
+    if (!y || !m || !d) {
+      resetDayView("Выбери дату");
+      return;
+    }
+
+    const monthStr = String(m).padStart(2, "0");
+    const dayStr = String(d).padStart(2, "0");
+    const date = `${y}-${monthStr}-${dayStr}`;
 
     statusDiv.textContent = "Загрузка...";
 
-    // соңғы run аламыз
-    const { data: run } = await supabaseClient
+    const { data: run, error: runError } = await supabaseClient
       .from("plan_runs")
       .select("id")
-      .eq("target_year", Number(y))
-      .eq("target_month", Number(m))
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+      .eq("target_year", y)
+      .eq("target_month", m)
+      .maybeSingle();
+
+    if (runError) {
+      console.error(runError);
+      resetDayView("Ошибка загрузки плана ❌");
+      return;
+    }
 
     if (!run) {
-      statusDiv.textContent = "План не найден ❌";
+      resetDayView("План не найден ❌");
       return;
     }
 
@@ -50,11 +75,16 @@
       .select("*")
       .eq("plan_run_id", run.id)
       .eq("plan_date", date)
-      .order("plan_hour");
+      .order("plan_hour", { ascending: true });
 
     if (error) {
       console.error(error);
-      statusDiv.textContent = "Ошибка ❌";
+      resetDayView("Ошибка ❌");
+      return;
+    }
+
+    if (!rows || !rows.length) {
+      resetDayView("На выбранный день данных нет");
       return;
     }
 
@@ -63,17 +93,19 @@
     let sumToo = 0;
     let sumGc = 0;
 
-    rows.forEach(r => {
-      const avg = r.gc ? r.too / r.gc : 0;
+    rows.forEach((r) => {
+      const too = Number(r.too) || 0;
+      const gc = Number(r.gc) || 0;
+      const avg = gc ? too / gc : 0;
 
-      sumToo += r.too;
-      sumGc += r.gc;
+      sumToo += too;
+      sumGc += gc;
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${String(r.plan_hour).padStart(2, "0")}:00</td>
-        <td>${format(r.too)}</td>
-        <td>${format(r.gc)}</td>
+        <td>${format(too)}</td>
+        <td>${format(gc)}</td>
         <td>${format(avg)}</td>
       `;
       tableBody.appendChild(tr);
@@ -87,8 +119,15 @@
   }
 
   loadBtn.addEventListener("click", loadDayPlan);
+  yearInput.addEventListener("change", loadDayPlan);
+  monthInput.addEventListener("change", loadDayPlan);
+  dayInput.addEventListener("change", loadDayPlan);
+
+  setTodayToInputs();
+  loadDayPlan();
 })();
-/*екзель жскод*/
+
+/* екзель жскод */
 const yearInput = document.getElementById("year");
 const monthInput = document.getElementById("month");
 const dayInput = document.getElementById("day");
@@ -112,4 +151,6 @@ function exportTableToExcel() {
   XLSX.writeFile(workbook, fileName);
 }
 
-exportExcelBtn.addEventListener("click", exportTableToExcel);
+if (exportExcelBtn) {
+  exportExcelBtn.addEventListener("click", exportTableToExcel);
+}
