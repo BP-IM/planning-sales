@@ -1,26 +1,31 @@
 (() => {
+  // ===== Подключение к Supabase =====
   const supabaseClient = window.supabase.createClient(
     "https://hpmocpehjdknsffilyee.supabase.co",
     "sb_publishable_8Pmmrw0lBWiMx5n6RwaK9w_z4-FKIFF"
   );
 
+  // ===== Элементы формы =====
   const targetYearInput = document.getElementById("targetYear");
   const targetMonthInput = document.getElementById("targetMonth");
   const monthlyTargetInput = document.getElementById("monthlyTarget");
-  const sourceUploadSelect = document.getElementById("sourceUpload");
+  const sourceInfoInput = document.getElementById("sourceInfo");
 
-  const loadSourcesBtn = document.getElementById("loadSourcesBtn");
   const generateBtn = document.getElementById("generateBtn");
   const saveBtn = document.getElementById("saveBtn");
   const statusDiv = document.getElementById("status");
 
+  // ===== Элементы блока итогов =====
   const summaryMonth = document.getElementById("summaryMonth");
+  const summarySource = document.getElementById("summarySource");
   const summaryTarget = document.getElementById("summaryTarget");
   const summaryDays = document.getElementById("summaryDays");
   const summaryHours = document.getElementById("summaryHours");
 
+  // ===== Таблица по дням =====
   const dailyPlanBody = document.getElementById("dailyPlanBody");
 
+  // ===== Названия дней недели =====
   const WEEKDAY_NAMES = [
     "Воскресенье",
     "Понедельник",
@@ -31,27 +36,35 @@
     "Суббота"
   ];
 
+  // ===== Сгенерированные данные в памяти =====
   let generatedDailyPlans = [];
   let generatedHourlyPlans = [];
+  let generatedSourceLabel = "";
 
+  // ===== Формат валюты =====
   function formatCurrency(value) {
     return new Intl.NumberFormat("ru-RU").format(Math.round(Number(value) || 0)) + " ₸";
   }
 
+  // ===== Формат месяца =====
   function formatMonthLabel(year, month) {
     return `${String(month).padStart(2, "0")}.${year}`;
   }
 
+  // ===== Количество дней в месяце =====
   function getDaysInMonth(year, month) {
     return new Date(year, month, 0).getDate();
   }
 
+  // ===== ISO-формат даты =====
   function toISODate(year, month, day) {
     return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
 
+  // ===== Информация по дате =====
   function getDateInfo(year, month, day) {
     const date = new Date(year, month - 1, day);
+
     return {
       iso: toISODate(year, month, day),
       weekdayNum: date.getDay(),
@@ -59,50 +72,46 @@
     };
   }
 
+  // ===== Предыдущий месяц =====
+  function getPreviousMonth(year, month) {
+    if (month === 1) {
+      return { year: year - 1, month: 12 };
+    }
+
+    return { year, month: month - 1 };
+  }
+
+  // ===== Сброс интерфейса =====
   function resetPlanView(message = "Сохраненный план не найден") {
     dailyPlanBody.innerHTML = "";
     summaryMonth.textContent = "—";
+    summarySource.textContent = "—";
     summaryTarget.textContent = "—";
     summaryDays.textContent = "—";
     summaryHours.textContent = "—";
+
     generatedDailyPlans = [];
     generatedHourlyPlans = [];
+    generatedSourceLabel = "";
+
     statusDiv.textContent = message;
   }
 
-  async function loadFactSources() {
-    statusDiv.textContent = "Загрузка источников...";
+  // ===== Обновление поля с источником =====
+  function updateSourceInfoLabel() {
+    const targetYear = Number(targetYearInput.value);
+    const targetMonth = Number(targetMonthInput.value);
 
-    const { data, error } = await supabaseClient
-      .from("fact_uploads")
-      .select("id, file_name, period_year, period_month, uploaded_at")
-      .order("uploaded_at", { ascending: false });
-
-    if (error) {
-      console.error(error);
-      statusDiv.textContent = "Ошибка загрузки источников ❌";
+    if (!targetYear || !targetMonth) {
+      sourceInfoInput.value = "Автоматически: предыдущий месяц";
       return;
     }
 
-    const currentValue = sourceUploadSelect.value;
-    sourceUploadSelect.innerHTML = "";
-
-    data.forEach((item) => {
-      const option = document.createElement("option");
-      option.value = item.id;
-      option.textContent = `${item.file_name} — ${item.period_month}.${item.period_year}`;
-      sourceUploadSelect.appendChild(option);
-    });
-
-    if (currentValue && data.some((item) => String(item.id) === String(currentValue))) {
-      sourceUploadSelect.value = currentValue;
-    }
-
-    statusDiv.textContent = data.length
-      ? "Источники загружены"
-      : "Нет загруженных источников";
+    const prev = getPreviousMonth(targetYear, targetMonth);
+    sourceInfoInput.value = `Автоматически: ${formatMonthLabel(prev.year, prev.month)}`;
   }
 
+  // ===== Группировка факта по дням =====
   function groupDailyTotals(factRows) {
     const dailyMap = new Map();
 
@@ -111,6 +120,7 @@
 
       if (!dailyMap.has(key)) {
         const weekdayNum = new Date(row.fact_date).getDay();
+
         dailyMap.set(key, {
           fact_date: row.fact_date,
           weekday_num: weekdayNum,
@@ -129,6 +139,7 @@
     );
   }
 
+  // ===== Среднее TOO по дням недели =====
   function buildWeekdayAverages(dailyTotals) {
     const weekdayMap = new Map();
 
@@ -154,17 +165,7 @@
     return result;
   }
 
-  function buildSameDayMap(dailyTotals) {
-    const result = new Map();
-
-    for (const item of dailyTotals) {
-      const dayNum = Number(item.fact_date.slice(8, 10));
-      result.set(dayNum, item.total_too);
-    }
-
-    return result;
-  }
-
+  // ===== Почасовые доли по дням недели =====
   function buildHourlyWeekdayShares(factRows) {
     const weekdayHourMap = new Map();
     const weekdayDayTotals = new Map();
@@ -204,6 +205,7 @@
     return sharesMap;
   }
 
+  // ===== Средний чек по дням недели и часам =====
   function buildHourlyWeekdayAvgChecks(factRows) {
     const weekdayHourMap = new Map();
 
@@ -238,9 +240,7 @@
 
       for (let hour = 0; hour < 24; hour++) {
         const bucket = hourMap.get(hour) || { totalToo: 0, totalGc: 0 };
-        const avgCheck =
-          bucket.totalGc > 0 ? bucket.totalToo / bucket.totalGc : 0;
-
+        const avgCheck = bucket.totalGc > 0 ? bucket.totalToo / bucket.totalGc : 0;
         avgCheckMap.set(hour, avgCheck);
       }
 
@@ -250,14 +250,123 @@
     return result;
   }
 
+  // ===== Загрузка настроек =====
+  async function loadSettings() {
+    const { data, error } = await supabaseClient
+      .from("app_settings")
+      .select("*")
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      throw new Error("Не удалось загрузить настройки");
+    }
+
+    return data;
+  }
+
+  // ===== Загрузка праздничных дней =====
+  async function loadHolidayMap(targetYear, targetMonth) {
+    const daysInMonth = getDaysInMonth(targetYear, targetMonth);
+    const startDate = toISODate(targetYear, targetMonth, 1);
+    const endDate = toISODate(targetYear, targetMonth, daysInMonth);
+
+    const { data, error } = await supabaseClient
+      .from("holiday_calendar")
+      .select("holiday_date, holiday_name, impact_multiplier, is_active")
+      .gte("holiday_date", startDate)
+      .lte("holiday_date", endDate)
+      .eq("is_active", true);
+
+    if (error) {
+      console.error(error);
+      return new Map();
+    }
+
+    const holidayMap = new Map();
+
+    for (const item of data || []) {
+      holidayMap.set(item.holiday_date, item);
+    }
+
+    return holidayMap;
+  }
+
+  // ===== Поиск источника факта: предыдущий месяц =====
+  async function findPreviousMonthUpload(targetYear, targetMonth) {
+    const prev = getPreviousMonth(targetYear, targetMonth);
+
+    const { data, error } = await supabaseClient
+      .from("fact_uploads")
+      .select("id, file_name, period_year, period_month, uploaded_at")
+      .eq("period_year", prev.year)
+      .eq("period_month", prev.month)
+      .order("uploaded_at", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      throw new Error("Ошибка загрузки источника предыдущего месяца");
+    }
+
+    if (!data || !data.length) {
+      throw new Error(`Не найден fact_upload за ${formatMonthLabel(prev.year, prev.month)}`);
+    }
+
+    return data[0];
+  }
+
+  // ===== Определение типа дня =====
+  function getDayType(dateInfo, holidayMap) {
+    const currentDate = dateInfo.iso;
+    const prevDate = toISODate(
+      new Date(currentDate).getFullYear(),
+      new Date(currentDate).getMonth() + 1,
+      new Date(currentDate).getDate() - 1
+    );
+    const nextDate = toISODate(
+      new Date(currentDate).getFullYear(),
+      new Date(currentDate).getMonth() + 1,
+      new Date(currentDate).getDate() + 1
+    );
+
+    if (holidayMap.has(currentDate)) return "holiday";
+    if (holidayMap.has(nextDate)) return "pre_holiday";
+    if (holidayMap.has(prevDate)) return "post_holiday";
+    if ([0, 6].includes(dateInfo.weekdayNum)) return "weekend";
+
+    return "weekday";
+  }
+
+  // ===== Коэффициент дня =====
+  function getDayMultiplier(dayType, settings, holidayMap, dateIso) {
+    if (dayType === "holiday") {
+      const holiday = holidayMap.get(dateIso);
+      return Number(holiday?.impact_multiplier) || Number(settings.holiday_multiplier) || 1;
+    }
+
+    if (dayType === "pre_holiday") {
+      return Number(settings.pre_holiday_multiplier) || 1;
+    }
+
+    if (dayType === "post_holiday") {
+      return Number(settings.post_holiday_multiplier) || 1;
+    }
+
+    if (dayType === "weekend") {
+      return Number(settings.weekend_multiplier) || 1;
+    }
+
+    return Number(settings.weekday_multiplier) || 1;
+  }
+
+  // ===== Генерация плана =====
   async function generatePlan() {
-    const uploadId = sourceUploadSelect.value;
     const targetYear = Number(targetYearInput.value);
     const targetMonth = Number(targetMonthInput.value);
     const monthlyTarget = Number(monthlyTargetInput.value);
 
-    if (!uploadId) {
-      alert("Источник факта таңдалмады");
+    if (!targetYear || !targetMonth) {
+      alert("Жыл мен айды енгіз");
       return;
     }
 
@@ -266,116 +375,124 @@
       return;
     }
 
-    const { data: settings, error: settingsError } = await supabaseClient
-      .from("app_settings")
-      .select("*")
-      .limit(1)
-      .single();
+    try {
+      statusDiv.textContent = "Загрузка настроек...";
+      const settings = await loadSettings();
 
-    if (settingsError || !settings) {
-      console.error(settingsError);
-      statusDiv.textContent = "Ошибка настроек ❌";
-      return;
-    }
+      statusDiv.textContent = "Поиск источника предыдущего месяца...";
+      const upload = await findPreviousMonthUpload(targetYear, targetMonth);
 
-    statusDiv.textContent = "Загрузка fact_data...";
+      generatedSourceLabel = `${upload.file_name} — ${String(upload.period_month).padStart(2, "0")}.${upload.period_year}`;
 
-    const { data: factRows, error } = await supabaseClient
-      .from("fact_data")
-      .select("fact_date, fact_hour, gc, too")
-      .eq("upload_id", uploadId)
-      .order("fact_date", { ascending: true })
-      .order("fact_hour", { ascending: true });
+      statusDiv.textContent = "Загрузка праздничных дней...";
+      const holidayMap = settings.holiday_enabled
+        ? await loadHolidayMap(targetYear, targetMonth)
+        : new Map();
 
-    if (error) {
-      console.error(error);
-      statusDiv.textContent = "Ошибка загрузки факта ❌";
-      return;
-    }
+      statusDiv.textContent = "Загрузка fact_data...";
+      const { data: factRows, error } = await supabaseClient
+        .from("fact_data")
+        .select("fact_date, fact_hour, gc, too")
+        .eq("upload_id", upload.id)
+        .order("fact_date", { ascending: true })
+        .order("fact_hour", { ascending: true });
 
-    const dailyTotals = groupDailyTotals(factRows);
-    const weekdayAverages = buildWeekdayAverages(dailyTotals);
-    const sameDayMap = buildSameDayMap(dailyTotals);
-    const hourlyShares = buildHourlyWeekdayShares(factRows);
-    const hourlyAvgChecks = buildHourlyWeekdayAvgChecks(factRows);
+      if (error) {
+        throw new Error("Ошибка загрузки fact_data");
+      }
 
-    const daysInMonth = getDaysInMonth(targetYear, targetMonth);
-    const rawDailyPlans = [];
+      if (!factRows || !factRows.length) {
+        throw new Error("По источнику нет fact_data");
+      }
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateInfo = getDateInfo(targetYear, targetMonth, day);
+      const dailyTotals = groupDailyTotals(factRows);
+      const weekdayAverages = buildWeekdayAverages(dailyTotals);
+      const hourlyShares = buildHourlyWeekdayShares(factRows);
+      const hourlyAvgChecks = buildHourlyWeekdayAvgChecks(factRows);
 
-      const sameDayValue = sameDayMap.get(day) || 0;
-      const weekdayAvg = weekdayAverages.get(dateInfo.weekdayNum) || 0;
+      const daysInMonth = getDaysInMonth(targetYear, targetMonth);
+      const rawDailyPlans = [];
 
-      const basePlan =
-        (sameDayValue * settings.same_day_weight) +
-        (weekdayAvg * settings.weekday_avg_weight);
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateInfo = getDateInfo(targetYear, targetMonth, day);
 
-      rawDailyPlans.push({
-        plan_date: dateInfo.iso,
-        weekday_num: dateInfo.weekdayNum,
-        weekday_name: dateInfo.weekdayName,
-        base_plan: basePlan,
-        final_plan: 0
-      });
-    }
+        const baseValue = weekdayAverages.get(dateInfo.weekdayNum) || 0;
+        const dayType = getDayType(dateInfo, holidayMap);
+        const multiplier = getDayMultiplier(dayType, settings, holidayMap, dateInfo.iso);
+        const weightedPlan = baseValue * multiplier;
 
-    const rawTotal = rawDailyPlans.reduce((sum, d) => sum + d.base_plan, 0);
-    const normalizeFactor = rawTotal > 0 ? monthlyTarget / rawTotal : 0;
-
-    generatedDailyPlans = rawDailyPlans.map((d) => ({
-      ...d,
-      final_plan: Math.round(d.base_plan * normalizeFactor)
-    }));
-
-    generatedHourlyPlans = [];
-
-    for (const day of generatedDailyPlans) {
-      const shareMap = hourlyShares.get(day.weekday_num) || new Map();
-      const avgCheckMap = hourlyAvgChecks.get(day.weekday_num) || new Map();
-
-      let distributed = 0;
-
-      for (let hour = 0; hour < 24; hour++) {
-        let too;
-
-        if (hour === 23) {
-          too = day.final_plan - distributed;
-        } else {
-          const share = shareMap.get(hour) || 0;
-          too = Math.round(day.final_plan * share);
-          distributed += too;
-        }
-
-        const historicalAvgCheck = avgCheckMap.get(hour) || 0;
-
-        let gc;
-        if (settings.gc_mode === "fixed") {
-          gc = settings.default_avg_check > 0
-            ? Math.round(too / settings.default_avg_check)
-            : 0;
-        } else {
-          gc = historicalAvgCheck > 0
-            ? Math.round(too / historicalAvgCheck)
-            : 0;
-        }
-
-        generatedHourlyPlans.push({
-          plan_date: day.plan_date,
-          plan_hour: hour,
-          gc,
-          too,
-          weekday_num: day.weekday_num,
-          day_type: [0, 6].includes(day.weekday_num) ? "weekend" : "normal"
+        rawDailyPlans.push({
+          plan_date: dateInfo.iso,
+          weekday_num: dateInfo.weekdayNum,
+          weekday_name: dateInfo.weekdayName,
+          day_type: dayType,
+          multiplier,
+          base_plan: baseValue,
+          weighted_plan: weightedPlan,
+          final_plan: 0
         });
       }
-    }
 
-    renderDailyPlans(targetYear, targetMonth, monthlyTarget);
-    statusDiv.textContent = "План сгенерирован ✅";
+      const rawTotal = rawDailyPlans.reduce((sum, d) => sum + d.weighted_plan, 0);
+      const normalizeFactor = rawTotal > 0 ? monthlyTarget / rawTotal : 0;
+
+      generatedDailyPlans = rawDailyPlans.map((d) => ({
+        ...d,
+        final_plan: Math.round(d.weighted_plan * normalizeFactor)
+      }));
+
+      generatedHourlyPlans = [];
+
+      for (const day of generatedDailyPlans) {
+        const shareMap = hourlyShares.get(day.weekday_num) || new Map();
+        const avgCheckMap = hourlyAvgChecks.get(day.weekday_num) || new Map();
+
+        let distributed = 0;
+
+        for (let hour = 0; hour < 24; hour++) {
+          let too;
+
+          if (hour === 23) {
+            too = day.final_plan - distributed;
+          } else {
+            const share = shareMap.get(hour) || 0;
+            too = Math.round(day.final_plan * share);
+            distributed += too;
+          }
+
+          const historicalAvgCheck = avgCheckMap.get(hour) || 0;
+
+          let gc;
+          if (settings.gc_mode === "fixed") {
+            gc = settings.default_avg_check > 0
+              ? Math.round(too / settings.default_avg_check)
+              : 0;
+          } else {
+            gc = historicalAvgCheck > 0
+              ? Math.round(too / historicalAvgCheck)
+              : 0;
+          }
+
+          generatedHourlyPlans.push({
+            plan_date: day.plan_date,
+            plan_hour: hour,
+            gc,
+            too,
+            weekday_num: day.weekday_num,
+            day_type: day.day_type
+          });
+        }
+      }
+
+      renderDailyPlans(targetYear, targetMonth, monthlyTarget);
+      statusDiv.textContent = "План сгенерирован ✅";
+    } catch (err) {
+      console.error(err);
+      statusDiv.textContent = err.message + " ❌";
+    }
   }
 
+  // ===== Отрисовка таблицы =====
   function renderDailyPlans(targetYear, targetMonth, monthlyTarget) {
     dailyPlanBody.innerHTML = "";
 
@@ -384,18 +501,21 @@
       tr.innerHTML = `
         <td>${day.plan_date}</td>
         <td>${day.weekday_name}</td>
-        <td>${formatCurrency(day.base_plan)}</td>
+        <td>${day.day_type}</td>
+        <td>${Number(day.multiplier).toFixed(2)}</td>
         <td>${formatCurrency(day.final_plan)}</td>
       `;
       dailyPlanBody.appendChild(tr);
     });
 
     summaryMonth.textContent = formatMonthLabel(targetYear, targetMonth);
+    summarySource.textContent = generatedSourceLabel || "—";
     summaryTarget.textContent = formatCurrency(monthlyTarget);
     summaryDays.textContent = String(generatedDailyPlans.length);
     summaryHours.textContent = String(generatedHourlyPlans.length);
   }
 
+  // ===== Отрисовка сохраненного плана =====
   function renderSavedPlanRows(targetYear, targetMonth, hourlyRows) {
     dailyPlanBody.innerHTML = "";
 
@@ -406,11 +526,13 @@
 
       if (!dailyMap.has(key)) {
         const weekdayNum = Number(row.weekday_num);
+
         dailyMap.set(key, {
           plan_date: row.plan_date,
           weekday_num: weekdayNum,
           weekday_name: WEEKDAY_NAMES[weekdayNum],
-          base_plan: 0,
+          day_type: row.day_type || "normal",
+          multiplier: 1,
           final_plan: 0
         });
       }
@@ -440,6 +562,7 @@
       tr.innerHTML = `
         <td>${day.plan_date}</td>
         <td>${day.weekday_name}</td>
+        <td>${day.day_type}</td>
         <td>—</td>
         <td>${formatCurrency(day.final_plan)}</td>
       `;
@@ -447,11 +570,13 @@
     });
 
     summaryMonth.textContent = formatMonthLabel(targetYear, targetMonth);
+    summarySource.textContent = "Сохраненный план";
     summaryTarget.textContent = formatCurrency(monthlyTarget);
     summaryDays.textContent = String(generatedDailyPlans.length);
     summaryHours.textContent = String(generatedHourlyPlans.length);
   }
 
+  // ===== Загрузка сохраненного плана =====
   async function loadSavedPlan() {
     const targetYear = Number(targetYearInput.value);
     const targetMonth = Number(targetMonthInput.value);
@@ -477,6 +602,7 @@
     }
 
     if (!runData) {
+      updateSourceInfoLabel();
       resetPlanView("Сохраненный план не найден");
       return;
     }
@@ -495,6 +621,7 @@
     }
 
     if (!planRows || !planRows.length) {
+      updateSourceInfoLabel();
       resetPlanView("Сохраненный план пуст");
       return;
     }
@@ -503,6 +630,7 @@
     statusDiv.textContent = "Сохраненный план загружен ✅";
   }
 
+  // ===== Сохранение плана =====
   async function savePlan() {
     if (!generatedDailyPlans.length || !generatedHourlyPlans.length) {
       alert("Сначала сгенерируй план");
@@ -522,8 +650,8 @@
           target_month: targetMonth,
           use_prev_month: true,
           use_same_month_last_year: false,
-          prev_month_weight: 0.7,
-          last_year_weight: 0.3
+          prev_month_weight: 1,
+          last_year_weight: 0
         },
         {
           onConflict: "target_year,target_month"
@@ -579,15 +707,23 @@
     statusDiv.textContent = "План сохранен и обновлен ✅";
   }
 
-  loadSourcesBtn.addEventListener("click", loadFactSources);
+  // ===== События =====
   generateBtn.addEventListener("click", generatePlan);
   saveBtn.addEventListener("click", savePlan);
 
-  targetYearInput.addEventListener("change", loadSavedPlan);
-  targetMonthInput.addEventListener("change", loadSavedPlan);
+  targetYearInput.addEventListener("change", () => {
+    updateSourceInfoLabel();
+    loadSavedPlan();
+  });
 
+  targetMonthInput.addEventListener("change", () => {
+    updateSourceInfoLabel();
+    loadSavedPlan();
+  });
+
+  // ===== Инициализация =====
   (async () => {
-    await loadFactSources();
+    updateSourceInfoLabel();
     await loadSavedPlan();
   })();
 })();

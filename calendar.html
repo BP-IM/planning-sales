@@ -31,7 +31,12 @@
           <input type="number" id="month" value="4" min="1" max="12">
           <input type="number" id="day" value="1" min="1" max="31">
 
-          <button id="loadBtn">Показать</button>
+          <button id="loadBtn" type="button">Показать</button>
+          <button id="toggleHolidayBtn" type="button">Сделать праздничным</button>
+        </div>
+
+        <div class="holiday-info">
+          <span id="holidayBadge" class="holiday-badge">Обычный день</span>
         </div>
 
         <div id="status"></div>
@@ -62,25 +67,28 @@
       <!-- Таблица -->
       <div class="card">
         <h2>Почасовой план</h2>
+
         <div class="table-actions">
-             <button id="exportExcelBtn">Экспорт в Excel</button>
+          <button id="exportExcelBtn" type="button">Экспорт в Excel</button>
         </div>
 
-       <table id="hourlyPlanTable">
-  <thead>
-    <tr>
-      <th>Час</th>
-      <th>TOO</th>
-      <th>GC</th>
-      <th>Ср. чек</th>
-    </tr>
-  </thead>
-  <tbody id="tableBody"></tbody>
-</table>
+        <table id="hourlyPlanTable">
+          <thead>
+            <tr>
+              <th>Час</th>
+              <th>TOO</th>
+              <th>GC</th>
+              <th>Ср. чек</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
 
     </main>
   </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/layout.js"></script>

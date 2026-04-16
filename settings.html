@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Настройки</title>
 
   <link rel="stylesheet" href="css/layout.css">
@@ -18,38 +19,66 @@
     </header>
 
     <main class="settings-page">
+      <!-- Блок: режим планирования -->
+      <section class="card">
+        <h2>Основные настройки</h2>
 
-      <h2>Формула дня</h2>
+        <label for="planningMode">Режим планирования</label>
+        <select id="planningMode">
+          <option value="prev_month_only">Только по предыдущему месяцу</option>
+        </select>
+      </section>
 
-<label>Вес аналогичного дня</label>
-<input id="sameDay" type="number" step="0.1">
+      <!-- Блок: расчет GC -->
+      <section class="card">
+        <h2>Настройки гостей (GC)</h2>
 
-<label>Вес среднего по дню недели</label>
-<input id="weekdayAvg" type="number" step="0.1">
+        <label for="gcMode">Режим расчёта</label>
+        <select id="gcMode">
+          <option value="historical">По историческим данным</option>
+          <option value="fixed">По фиксированному среднему чеку</option>
+        </select>
 
-      <h2>Источники данных</h2>
+        <label for="avgCheck">Средний чек по умолчанию</label>
+        <input id="avgCheck" type="number" min="0" step="1">
+      </section>
 
-<label>Вес прошлого месяца</label>
-<input id="prevWeight" type="number" step="0.1">
+      <!-- Блок: коэффициенты по дням -->
+      <section class="card">
+        <h2>Коэффициенты дней</h2>
 
-<label>Вес аналогичного месяца прошлого года</label>
-<input id="lastYearWeight" type="number" step="0.1">
+        <label for="weekdayMultiplier">Коэффициент будних дней</label>
+        <input id="weekdayMultiplier" type="number" min="0" step="0.01">
 
-      <h2>Настройки гостей (GC)</h2>
+        <label for="weekendMultiplier">Коэффициент выходных дней</label>
+        <input id="weekendMultiplier" type="number" min="0" step="0.01">
+      </section>
 
-<label>Режим расчёта</label>
-<select id="gcMode">
-  <option value="historical">По историческим данным</option>
-  <option value="fixed">Фиксированный средний чек</option>
-</select>
+      <!-- Блок: праздничные дни -->
+      <section class="card">
+        <h2>Праздничные дни</h2>
 
-<label>Средний чек по умолчанию</label>
-<input id="avgCheck" type="number">
+        <label for="holidayEnabled">Учитывать праздничные дни</label>
+        <select id="holidayEnabled">
+          <option value="true">Да</option>
+          <option value="false">Нет</option>
+        </select>
 
-      <button id="saveBtn">Сохранить настройки</button>
+        <label for="holidayMultiplier">Коэффициент праздничного дня</label>
+        <input id="holidayMultiplier" type="number" min="0" step="0.01">
 
+        <label for="preHolidayMultiplier">Коэффициент предпраздничного дня</label>
+        <input id="preHolidayMultiplier" type="number" min="0" step="0.01">
+
+        <label for="postHolidayMultiplier">Коэффициент после праздника</label>
+        <input id="postHolidayMultiplier" type="number" min="0" step="0.01">
+      </section>
+
+      <!-- Кнопка сохранения -->
+      <button id="saveBtn" type="button">Сохранить настройки</button>
+
+      <!-- Статус -->
       <div id="status"></div>
-
     </main>
   </div>
 </div>
