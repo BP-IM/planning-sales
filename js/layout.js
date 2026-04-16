@@ -14,7 +14,7 @@ function renderSidebar() {
   sidebar.innerHTML = `
     <div class="sidebar-top">
       <div class="logo">
-        <span class="logo-text">📊 Planning</span>
+        <span class="logo-text">Planning</span>
       </div>
     </div>
 
