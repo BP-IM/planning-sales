@@ -25,6 +25,14 @@
   // ===== Таблица по дням =====
   const dailyPlanBody = document.getElementById("dailyPlanBody");
 
+  // ===== Holiday calendar =====
+  const holidayPrevBtn = document.getElementById("holidayPrevBtn");
+  const holidayNextBtn = document.getElementById("holidayNextBtn");
+  const holidayMonthLabel = document.getElementById("holidayMonthLabel");
+  const holidayDays = document.getElementById("holidayDays");
+  const saveHolidaysBtn = document.getElementById("saveHolidaysBtn");
+  const holidayStatus = document.getElementById("holidayStatus");
+
   // ===== Названия дней недели =====
   const WEEKDAY_NAMES = [
     "Воскресенье",
@@ -36,10 +44,32 @@
     "Суббота"
   ];
 
+  const WEEKDAY_SHORT_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+  const MONTH_NAMES_RU = [
+    "Январь",
+    "Февраль",
+    "Март",
+    "Апрель",
+    "Май",
+    "Июнь",
+    "Июль",
+    "Август",
+    "Сентябрь",
+    "Октябрь",
+    "Ноябрь",
+    "Декабрь"
+  ];
+
   // ===== Сгенерированные данные в памяти =====
   let generatedDailyPlans = [];
   let generatedHourlyPlans = [];
   let generatedSourceLabel = "";
+
+  // ===== Holiday picker state =====
+  let holidayCalendarYear = Number(targetYearInput?.value) || new Date().getFullYear();
+  let holidayCalendarMonth = Number(targetMonthInput?.value) || new Date().getMonth() + 1;
+  let selectedHolidayDates = new Set();
 
   // ===== Формат валюты =====
   function formatCurrency(value) {
@@ -49,6 +79,10 @@
   // ===== Формат месяца =====
   function formatMonthLabel(year, month) {
     return `${String(month).padStart(2, "0")}.${year}`;
+  }
+
+  function formatCalendarMonthLabel(year, month) {
+    return `${MONTH_NAMES_RU[month - 1]} ${year}`;
   }
 
   // ===== Количество дней в месяце =====
@@ -292,6 +326,241 @@
     return holidayMap;
   }
 
+  // ===== Загрузка выбранных праздников для календаря =====
+  async function loadSelectedHolidaysForMonth(year, month) {
+    if (!holidayStatus) return;
+
+    holidayStatus.textContent = "Загрузка праздников месяца...";
+
+    try {
+      const holidayMap = await loadHolidayMap(year, month);
+      selectedHolidayDates = new Set(Array.from(holidayMap.keys()));
+      renderHolidayCalendar();
+      holidayStatus.textContent = selectedHolidayDates.size
+        ? `Загружено праздничных дней: ${selectedHolidayDates.size}`
+        : "Праздничные дни не выбраны";
+    } catch (error) {
+      console.error(error);
+      selectedHolidayDates = new Set();
+      renderHolidayCalendar();
+      holidayStatus.textContent = "Ошибка загрузки праздников ❌";
+    }
+  }
+
+  // ===== Обновить календарь по выбранным году и месяцу =====
+  async function updateHolidayCalendarFromInputs() {
+    holidayCalendarYear = Number(targetYearInput.value);
+    holidayCalendarMonth = Number(targetMonthInput.value);
+
+    renderHolidayCalendar();
+    await loadSelectedHolidaysForMonth(holidayCalendarYear, holidayCalendarMonth);
+  }
+
+  // ===== Сдвиг календаря праздников =====
+  async function shiftHolidayCalendarMonth(delta) {
+    holidayCalendarMonth += delta;
+
+    if (holidayCalendarMonth < 1) {
+      holidayCalendarMonth = 12;
+      holidayCalendarYear -= 1;
+    }
+
+    if (holidayCalendarMonth > 12) {
+      holidayCalendarMonth = 1;
+      holidayCalendarYear += 1;
+    }
+
+    targetYearInput.value = holidayCalendarYear;
+    targetMonthInput.value = holidayCalendarMonth;
+
+    updateSourceInfoLabel();
+    renderHolidayCalendar();
+    await loadSelectedHolidaysForMonth(holidayCalendarYear, holidayCalendarMonth);
+    await loadSavedPlan();
+  }
+
+  // ===== Порядок дней недели: понедельник -> воскресенье =====
+  function getMondayFirstWeekday(date) {
+    const day = date.getDay();
+    return day === 0 ? 6 : day - 1;
+  }
+
+  // ===== Отрисовка календаря =====
+  function renderHolidayCalendar() {
+    if (!holidayMonthLabel || !holidayDays) return;
+
+    holidayMonthLabel.textContent = formatCalendarMonthLabel(
+      holidayCalendarYear,
+      holidayCalendarMonth
+    );
+
+    holidayDays.innerHTML = "";
+
+    const firstDate = new Date(holidayCalendarYear, holidayCalendarMonth - 1, 1);
+    const daysInCurrentMonth = getDaysInMonth(holidayCalendarYear, holidayCalendarMonth);
+
+    const prevMonth =
+      holidayCalendarMonth === 1
+        ? { year: holidayCalendarYear - 1, month: 12 }
+        : { year: holidayCalendarYear, month: holidayCalendarMonth - 1 };
+
+    const nextMonth =
+      holidayCalendarMonth === 12
+        ? { year: holidayCalendarYear + 1, month: 1 }
+        : { year: holidayCalendarYear, month: holidayCalendarMonth + 1 };
+
+    const daysInPrevMonth = getDaysInMonth(prevMonth.year, prevMonth.month);
+    const leadingDays = getMondayFirstWeekday(firstDate);
+
+    // Предыдущий месяц
+    for (let i = leadingDays - 1; i >= 0; i--) {
+      const day = daysInPrevMonth - i;
+      const iso = toISODate(prevMonth.year, prevMonth.month, day);
+      const button = createCalendarDayButton({
+        year: prevMonth.year,
+        month: prevMonth.month,
+        day,
+        iso,
+        isOtherMonth: true
+      });
+      holidayDays.appendChild(button);
+    }
+
+    // Текущий месяц
+    for (let day = 1; day <= daysInCurrentMonth; day++) {
+      const iso = toISODate(holidayCalendarYear, holidayCalendarMonth, day);
+      const button = createCalendarDayButton({
+        year: holidayCalendarYear,
+        month: holidayCalendarMonth,
+        day,
+        iso,
+        isOtherMonth: false
+      });
+      holidayDays.appendChild(button);
+    }
+
+    // Следующий месяц
+    const totalRendered = leadingDays + daysInCurrentMonth;
+    const trailingDays = totalRendered % 7 === 0 ? 0 : 7 - (totalRendered % 7);
+
+    for (let day = 1; day <= trailingDays; day++) {
+      const iso = toISODate(nextMonth.year, nextMonth.month, day);
+      const button = createCalendarDayButton({
+        year: nextMonth.year,
+        month: nextMonth.month,
+        day,
+        iso,
+        isOtherMonth: true
+      });
+      holidayDays.appendChild(button);
+    }
+  }
+
+  function createCalendarDayButton({ year, month, day, iso, isOtherMonth }) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "calendar-day";
+
+    if (isOtherMonth) {
+      button.classList.add("other-month");
+    }
+
+    if (selectedHolidayDates.has(iso)) {
+      button.classList.add("selected");
+    }
+
+    const today = new Date();
+    const isToday =
+      today.getFullYear() === year &&
+      today.getMonth() + 1 === month &&
+      today.getDate() === day;
+
+    if (isToday) {
+      button.classList.add("today");
+    }
+
+    button.textContent = String(day);
+    button.dataset.date = iso;
+
+    button.addEventListener("click", () => {
+      if (isOtherMonth) {
+        holidayCalendarYear = year;
+        holidayCalendarMonth = month;
+        targetYearInput.value = year;
+        targetMonthInput.value = month;
+        updateSourceInfoLabel();
+      }
+
+      toggleHolidayDate(iso);
+    });
+
+    return button;
+  }
+
+  function toggleHolidayDate(dateIso) {
+    if (selectedHolidayDates.has(dateIso)) {
+      selectedHolidayDates.delete(dateIso);
+    } else {
+      selectedHolidayDates.add(dateIso);
+    }
+
+    renderHolidayCalendar();
+
+    if (holidayStatus) {
+      holidayStatus.textContent = `Выбрано праздничных дней: ${selectedHolidayDates.size}`;
+    }
+  }
+
+  // ===== Сохранение выбранных праздников =====
+  async function saveSelectedHolidays() {
+    const year = holidayCalendarYear;
+    const month = holidayCalendarMonth;
+    const daysInMonth = getDaysInMonth(year, month);
+    const startDate = toISODate(year, month, 1);
+    const endDate = toISODate(year, month, daysInMonth);
+
+    holidayStatus.textContent = "Сохранение праздников...";
+
+    try {
+      const { error: deleteError } = await supabaseClient
+        .from("holiday_calendar")
+        .delete()
+        .gte("holiday_date", startDate)
+        .lte("holiday_date", endDate);
+
+      if (deleteError) {
+        throw new Error("Ошибка очистки holiday_calendar");
+      }
+
+      const rows = Array.from(selectedHolidayDates)
+        .filter((date) => date >= startDate && date <= endDate)
+        .sort()
+        .map((holidayDate) => ({
+          holiday_date: holidayDate,
+          holiday_name: "Праздничный день",
+          impact_multiplier: null,
+          is_active: true
+        }));
+
+      if (rows.length) {
+        const { error: insertError } = await supabaseClient
+          .from("holiday_calendar")
+          .insert(rows);
+
+        if (insertError) {
+          throw new Error("Ошибка сохранения holiday_calendar");
+        }
+      }
+
+      holidayStatus.textContent = rows.length
+        ? `Праздники сохранены ✅ (${rows.length})`
+        : "Праздничные дни очищены ✅";
+    } catch (error) {
+      console.error(error);
+      holidayStatus.textContent = `${error.message} ❌`;
+    }
+  }
+
   // ===== Поиск источника факта: предыдущий месяц =====
   async function findPreviousMonthUpload(targetYear, targetMonth) {
     const prev = getPreviousMonth(targetYear, targetMonth);
@@ -318,16 +587,16 @@
   // ===== Определение типа дня =====
   function getDayType(dateInfo, holidayMap) {
     const currentDate = dateInfo.iso;
-    const prevDate = toISODate(
-      new Date(currentDate).getFullYear(),
-      new Date(currentDate).getMonth() + 1,
-      new Date(currentDate).getDate() - 1
-    );
-    const nextDate = toISODate(
-      new Date(currentDate).getFullYear(),
-      new Date(currentDate).getMonth() + 1,
-      new Date(currentDate).getDate() + 1
-    );
+    const current = new Date(dateInfo.iso);
+
+    const prev = new Date(current);
+    prev.setDate(current.getDate() - 1);
+
+    const next = new Date(current);
+    next.setDate(current.getDate() + 1);
+
+    const prevDate = toISODate(prev.getFullYear(), prev.getMonth() + 1, prev.getDate());
+    const nextDate = toISODate(next.getFullYear(), next.getMonth() + 1, next.getDate());
 
     if (holidayMap.has(currentDate)) return "holiday";
     if (holidayMap.has(nextDate)) return "pre_holiday";
@@ -708,22 +977,29 @@
   }
 
   // ===== События =====
-  generateBtn.addEventListener("click", generatePlan);
-  saveBtn.addEventListener("click", savePlan);
+  generateBtn?.addEventListener("click", generatePlan);
+  saveBtn?.addEventListener("click", savePlan);
+  holidayPrevBtn?.addEventListener("click", () => shiftHolidayCalendarMonth(-1));
+  holidayNextBtn?.addEventListener("click", () => shiftHolidayCalendarMonth(1));
+  saveHolidaysBtn?.addEventListener("click", saveSelectedHolidays);
 
-  targetYearInput.addEventListener("change", () => {
+  targetYearInput?.addEventListener("change", async () => {
     updateSourceInfoLabel();
-    loadSavedPlan();
+    await updateHolidayCalendarFromInputs();
+    await loadSavedPlan();
   });
 
-  targetMonthInput.addEventListener("change", () => {
+  targetMonthInput?.addEventListener("change", async () => {
     updateSourceInfoLabel();
-    loadSavedPlan();
+    await updateHolidayCalendarFromInputs();
+    await loadSavedPlan();
   });
 
   // ===== Инициализация =====
   (async () => {
     updateSourceInfoLabel();
+    renderHolidayCalendar();
+    await updateHolidayCalendarFromInputs();
     await loadSavedPlan();
   })();
 })();

@@ -54,6 +54,42 @@
 
           <div id="status" class="status"></div>
         </section>
+        <!
+        -- календарь для указания праздничных дней
+         --будет открываться в модальном окне >
+        <section class="card">
+              <h2>Праздничные дни</h2>
+
+              <div class="holiday-toolbar">
+                <button id="openHolidayModalBtn" type="button">Выбрать праздничные дни</button>
+                <div id="holidayStatus" class="holiday-status"></div>
+              </div>
+            </section>
+
+            <div id="holidayModal" class="holiday-modal hidden">
+              <div class="holiday-modal-backdrop"></div>
+               <div class="holiday-modal-dialog">
+                 <div class="holiday-modal-header">
+                    <button id="holidayPrevBtn" type="button" class="calendar-nav-btn">←</button>
+                    <div id="holidayMonthLabel" class="calendar-month-label">Апрель 2026</div>
+                    <button id="holidayNextBtn" type="button" class="calendar-nav-btn">→</button>
+                  </div>
+                    <div class="calendar-weekdays">
+                      <span>Пн</span>
+                      <span>Вт</span>
+                      <span>Ср</span>
+                      <span>Чт</span>
+                      <span>Пт</span>
+                      <span>Сб</span>
+                      <span>Вс</span>
+                    </div>
+                  <div id="holidayDays" class="calendar-days"></div>
+                    <div class="holiday-modal-actions">
+                      <button id="closeHolidayModalBtn" type="button" class="secondary-btn">Закрыть</button>
+                      <button id="saveHolidaysBtn" type="button">Применить</button>
+                    </div>
+                  </div>
+            </div>
 
         <!-- Итог -->
         <section class="card">
@@ -82,6 +118,7 @@
           </div>
         </section>
 
+
         <!-- План по дням -->
         <section class="card">
           <h2>План по дням</h2>
@@ -106,6 +143,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/layout.js"></script>
-  <script src="js/planning.js"></script>
+  
+  <script src="js/planning-utils.js"></script>
+  <script src="js/planning-facts.js"></script>
+  <script src="js/planning-holidays.js"></script>
+  <script src="js/planning-plan.js"></script>
+  <script src="js/planning-main.js"></script>
+
 </body>
 </html>
